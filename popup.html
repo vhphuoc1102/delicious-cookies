@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="popup.css" />
+    <title>Cookie Manager</title>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">Cookie Manager</span>
+      </div>
+      <div class="site" id="site-info">
+        <span class="site-label">Site</span>
+        <span class="site-domain" id="site-domain">—</span>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="cookies">Cookies</button>
+      <button class="tab" data-tab="import">Import</button>
+      <button class="tab" data-tab="export">Export</button>
+    </nav>
+
+    <!-- ===================== COOKIES ===================== -->
+    <section class="panel active" data-panel="cookies">
+      <div class="toolbar">
+        <input id="search" class="search" type="text" placeholder="🔍 Tìm cookie…" />
+        <button id="btn-add" class="btn btn-primary" title="Thêm cookie thủ công">+ Add</button>
+        <button id="btn-delete-all" class="btn btn-danger" title="Xóa toàn bộ cookie của site">Delete all</button>
+      </div>
+      <div class="count-row"><span id="cookie-count">0</span> cookie</div>
+      <div id="cookie-list" class="cookie-list"></div>
+    </section>
+
+    <!-- ===================== IMPORT ===================== -->
+    <section class="panel" data-panel="import">
+      <label class="field-label">Dán cookie (string / JSON / Netscape — tự nhận diện)</label>
+      <textarea
+        id="import-text"
+        class="textarea"
+        rows="6"
+        placeholder="VD Facebook: c_user=100...; xs=19:...; datr=...; fr=..."
+      ></textarea>
+      <div class="detect-row">
+        Định dạng: <span id="detected-format" class="badge">—</span>
+      </div>
+
+      <div class="opt-grid">
+        <label class="field-label" for="target-domain">Domain đích</label>
+        <input id="target-domain" class="input" type="text" placeholder=".facebook.com" />
+
+        <label class="field-label" for="exp-select">Hết hạn</label>
+        <select id="exp-select" class="input">
+          <option value="year" selected>1 năm</option>
+          <option value="30d">30 ngày</option>
+          <option value="session">Session (đóng tab là mất)</option>
+        </select>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" id="opt-normalize" checked />
+        Chuẩn hóa domain về <code>.domain</code> (fix subdomain Facebook)
+      </label>
+      <label class="check">
+        <input type="checkbox" id="opt-profile" checked />
+        Áp dụng Site Profile (HttpOnly / Secure / SameSite đúng)
+      </label>
+
+      <button id="btn-import" class="btn btn-primary btn-block">Import cookies</button>
+      <p class="hint">
+        Dùng <code>chrome.cookies</code> API nên set được cả cookie HttpOnly (như
+        <code>xs</code>) — thứ mà cách inject <code>document.cookie</code> không làm được.
+      </p>
+    </section>
+
+    <!-- ===================== EXPORT ===================== -->
+    <section class="panel" data-panel="export">
+      <label class="field-label">Định dạng xuất</label>
+      <div class="radio-row">
+        <label class="radio"><input type="radio" name="exp-fmt" value="string" checked /> String</label>
+        <label class="radio"><input type="radio" name="exp-fmt" value="json" /> JSON</label>
+        <label class="radio"><input type="radio" name="exp-fmt" value="netscape" /> Netscape</label>
+      </div>
+      <textarea id="export-text" class="textarea mono" rows="9" readonly></textarea>
+      <div class="btn-row">
+        <button id="btn-copy" class="btn btn-primary">Copy</button>
+        <button id="btn-download" class="btn">Download</button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- ===================== EDITOR (modal) ===================== -->
+    <div id="editor-backdrop" class="backdrop hidden">
+      <div class="editor">
+        <h3 id="editor-title">Sửa cookie</h3>
+        <div class="editor-grid">
+          <label>Name</label>
+          <input id="ed-name" class="input" type="text" />
+          <label>Value</label>
+          <textarea id="ed-value" class="textarea" rows="3"></textarea>
+          <label>Domain</label>
+          <input id="ed-domain" class="input" type="text" />
+          <label>Path</label>
+          <input id="ed-path" class="input" type="text" value="/" />
+          <label>Hết hạn</label>
+          <div class="exp-cell">
+            <input id="ed-expiration" class="input" type="datetime-local" />
+            <label class="check inline"><input type="checkbox" id="ed-session" /> Session</label>
+          </div>
+          <label>SameSite</label>
+          <select id="ed-samesite" class="input">
+            <option value="unspecified">unspecified</option>
+            <option value="no_restriction">no_restriction (None)</option>
+            <option value="lax">lax</option>
+            <option value="strict">strict</option>
+          </select>
+          <label>Flags</label>
+          <div class="flags-cell">
+            <label class="check inline"><input type="checkbox" id="ed-secure" /> Secure</label>
+            <label class="check inline"><input type="checkbox" id="ed-httponly" /> HttpOnly</label>
+          </div>
+        </div>
+        <div class="btn-row end">
+          <button id="ed-cancel" class="btn">Hủy</button>
+          <button id="ed-save" class="btn btn-primary">Lưu</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

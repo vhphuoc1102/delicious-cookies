@@ -1,0 +1,49 @@
+name: Release
+
+# Đẩy một tag dạng vX.Y.Z là tự build zip extension và tạo GitHub Release đính kèm.
+#   git tag v1.0.1 && git push origin v1.0.1
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build extension zip
+        run: |
+          set -e
+          TAG="${GITHUB_REF_NAME}"
+          STAGE="dist/delicious-cookies"
+          mkdir -p "$STAGE"
+          cp -r manifest.json popup.html popup.css popup.js lib icons README.md "$STAGE/"
+          (cd dist && zip -r "../delicious-cookies-${TAG}.zip" delicious-cookies)
+          echo "ZIP=delicious-cookies-${TAG}.zip" >> "$GITHUB_ENV"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -e
+          NOTES="$(cat <<EOF
+          ## Cài đặt
+          1. Tải **$ZIP** ở mục Assets bên dưới.
+          2. Giải nén — bạn được thư mục \`delicious-cookies\`.
+          3. Mở \`chrome://extensions\` (hoặc \`edge://extensions\`), bật **Developer mode**.
+          4. Bấm **Load unpacked** → chọn thư mục \`delicious-cookies\`.
+
+          Extension Manifest V3: export/import cookie (string / JSON / Netscape), fix domain Facebook (\`.facebook.com\`) và set được cookie HttpOnly như \`xs\`.
+          EOF
+          )"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+          else
+            gh release create "$TAG" "$ZIP" --title "Delicious Cookies $TAG" --notes "$NOTES"
+          fi

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="../popup.css" />
+  </head>
+  <body>
+    <script>
+      // ---------------- mock chrome.* ----------------
+      const exp = 1900000000; // far-future epoch (seconds)
+      const store = [
+        { name: "c_user", value: "61581345713474", domain: ".facebook.com", path: "/", secure: true, httpOnly: false, sameSite: "no_restriction", session: false, hostOnly: false, expirationDate: exp },
+        { name: "datr", value: "Hr_OaNVrh0Tz5CD7nf1Donkt", domain: ".facebook.com", path: "/", secure: true, httpOnly: true, sameSite: "no_restriction", session: false, hostOnly: false, expirationDate: exp },
+        { name: "xs", value: "19:KurLrXeNtMl29Q:2:1758439990:-1:-1", domain: ".facebook.com", path: "/", secure: true, httpOnly: true, sameSite: "no_restriction", session: false, hostOnly: false, expirationDate: exp },
+      ];
+      window.__setCalls = [];
+      window.__removeCalls = [];
+      const keyOf = (c) => `${c.name} ${c.domain} ${c.path}`;
+
+      window.chrome = {
+        tabs: {
+          query: async () => [{ id: 1, url: "https://www.facebook.com/" }],
+        },
+        cookies: {
+          getAll: async ({ domain }) => {
+            const reg = (domain || "").replace(/^\./, "");
+            return store.filter((c) => c.domain.replace(/^\./, "").endsWith(reg));
+          },
+          set: async (d) => {
+            window.__setCalls.push(d);
+            const c = {
+              name: d.name, value: d.value ?? "", domain: d.domain || "",
+              path: d.path || "/", secure: !!d.secure, httpOnly: !!d.httpOnly,
+              sameSite: d.sameSite || "unspecified",
+              hostOnly: !d.domain, session: typeof d.expirationDate !== "number",
+            };
+            if (typeof d.expirationDate === "number") c.expirationDate = d.expirationDate;
+            const i = store.findIndex((x) => keyOf(x) === keyOf(c));
+            if (i >= 0) store[i] = c; else store.push(c);
+            return c;
+          },
+          remove: async ({ url, name }) => {
+            window.__removeCalls.push({ url, name });
+            const i = store.findIndex((x) => x.name === name);
+            if (i >= 0) store.splice(i, 1);
+            return { url, name };
+          },
+        },
+      };
+    </script>
+
+    <script>
+      // Render the REAL popup markup directly into body (faithful flex layout),
+      // then load the REAL popup.js module against the mocked chrome.
+      (async () => {
+        const html = await (await fetch("../popup.html")).text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        document.body.innerHTML = doc.body.innerHTML; // inert <script> won't run
+        await import("../popup.js");
+        window.__ready = true;
+      })();
+    </script>
+  </body>
+</html>
