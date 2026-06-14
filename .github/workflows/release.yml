@@ -20,9 +20,19 @@ jobs:
         run: |
           set -e
           TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          # Chrome manifest version = 1-4 dot-separated integers (e.g. v1.2.3 -> 1.2.3)
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+(\.[0-9]+){0,3}$'; then
+            echo "::error::Tag '$TAG' gives version '$VERSION', không hợp lệ cho Chrome manifest (cần dạng v1.2.3)."
+            exit 1
+          fi
           STAGE="dist/delicious-cookies"
           mkdir -p "$STAGE"
           cp -r manifest.json popup.html popup.css popup.js lib icons README.md "$STAGE/"
+          # đồng bộ version trong manifest đóng gói cho khớp tag
+          jq --arg v "$VERSION" '.version = $v' "$STAGE/manifest.json" > "$STAGE/manifest.json.tmp"
+          mv "$STAGE/manifest.json.tmp" "$STAGE/manifest.json"
+          echo "Packaged manifest version: $(jq -r .version "$STAGE/manifest.json")"
           (cd dist && zip -r "../delicious-cookies-${TAG}.zip" delicious-cookies)
           echo "ZIP=delicious-cookies-${TAG}.zip" >> "$GITHUB_ENV"
 
